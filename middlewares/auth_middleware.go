@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ishu17077/hectoclash/helpers"
+	"github.com/ishu17077/hectoclash-backend/helpers"
 )
 
 func Authenticate() gin.HandlerFunc {

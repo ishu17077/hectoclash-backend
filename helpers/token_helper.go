@@ -8,7 +8,7 @@ import (
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/ishu17077/hectoclash/database"
+	"github.com/ishu17077/hectoclash-backend/database"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
