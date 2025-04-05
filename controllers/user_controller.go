@@ -20,7 +20,7 @@ import (
 
 var userCollection *mongo.Collection = database.OpenCollection(database.Client, "users")
 
-//! Internal Function to query
+// ! Internal Function to query
 func GetUsers() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -107,7 +107,7 @@ func SignUp() gin.HandlerFunc {
 
 		//* Convert the JSON data coming from postman to something go lang would understand
 		if err := c.BindJSON(&userREST); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing json"})
 			cancel()
 			return
 		}
@@ -135,12 +135,8 @@ func SignUp() gin.HandlerFunc {
 		//* check if email is already used by another user
 		//* check if phone no or mail is already used by another user
 		defer cancel()
-		count, err := userCollection.CountDocuments(ctx, bson.M{
-			"$or": []bson.M{
-				{"email": *(user.Email)},
-				{"phone": *(user.Phone)},
-			},
-		})
+		count, err := userCollection.CountDocuments(ctx, bson.M{"email": *(&user.Email)})
+
 		//! let's see if this works instead of querying two times
 
 		if err != nil {
@@ -170,7 +166,15 @@ func SignUp() gin.HandlerFunc {
 			return
 		}
 		//* return statusOk and send the result back
-		c.JSON(http.StatusOK, user)
+		c.JSON(http.StatusOK, gin.H{
+			"first_name":    userREST.First_name,
+			"last_name":     userREST.Last_name,
+			"email":         userREST.Email,
+			"phone":         userREST.Phone,
+			"avatar":        userREST.Avatar,
+			"token":         *(user.Token),
+			"refresh_token": *(user.Refresh_token),
+		})
 	}
 }
 

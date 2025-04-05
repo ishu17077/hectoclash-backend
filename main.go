@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	// "github.com/ishu17077/hectoclash-backend/middlewares"
 	"github.com/ishu17077/hectoclash-backend/middlewares"
 	"github.com/ishu17077/hectoclash-backend/routes"
 	// calculator "github.com/mnogu/go-calculator"
@@ -18,7 +19,8 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	routes.UserRoutes(router)
-	router.Use(middlewares.Authenticate())
+	// router.Use(middlewares.Authenticate())
+	router.Use(middlewares.CORSMiddleware())
 	routes.MatchRoutes(router)
 	routes.ProblemRoutes(router)
 	routes.MatchProblemRoutes(router)

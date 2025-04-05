@@ -15,6 +15,7 @@ type Match struct {
 	Updated_at           time.Time          `json:"updated_at"`
 	Started_at           time.Time          `json:"started_at"`
 	Is_started           bool               `json:"is_started"`
+	Is_private           bool               `json:"is_private"`
 	Created_by_player_id *string            `json:"created_by_player_id" validate:"required"`
 	Match_id             string             `json:"match_id" validate:"required"`
 	Match_duration       time.Duration      `json:"match_duration" validate:"required"`
@@ -26,8 +27,9 @@ type MatchREST struct {
 	Match_code           uint32        `json:"match_code"`
 	Problems             uint8         `json:"problems"`
 	Created_by_player_id *string       `json:"created_by_player_id"`
-	Match_id             *string        `json:"match_id"`
+	Player_ids           []string      `json:"player_ids" validate:"required"`
+	Match_id             *string       `json:"match_id"`
 	Match_duration       time.Duration `json:"match_duration"`
+	Is_private           bool          `json:"is_private"`
 	Is_ended             bool          `json:"is_ended"`
 }
-
