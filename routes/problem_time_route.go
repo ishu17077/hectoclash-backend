@@ -7,4 +7,5 @@ import (
 
 func ProblemTimeRoutes(incomingRoutes *gin.Engine) {
 	incomingRoutes.GET("/matches/:match_id/players/:player_id/problems/:problem_number/time-taken", controllers.GetProblemTime())
+	incomingRoutes.POST("/matches/:match_id/players/:player_id/problems/:problem_number/time-taken", controllers.CreateProblemTime())
 }

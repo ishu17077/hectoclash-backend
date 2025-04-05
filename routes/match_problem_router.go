@@ -6,6 +6,6 @@ import (
 )
 
 func MatchProblemRoutes(incomingRoutes *gin.Engine) {
-	incomingRoutes.GET("/match/problems", controllers.GetMatchProblems())
-	incomingRoutes.GET("/matches/problem", controllers.GetMatchProblem())
+	incomingRoutes.GET("/match/:match_id/problems", controllers.GetMatchProblems())
+	incomingRoutes.GET("/match/:match_id/problem", controllers.GetMatchProblem())
 }

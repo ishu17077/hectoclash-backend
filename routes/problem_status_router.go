@@ -6,7 +6,7 @@ import (
 )
 
 func ProblemStatusRoutes(incomingRoutes *gin.Engine) {
-	incomingRoutes.GET("/match/problem-status", controllers.GetProblemStatus())
-	incomingRoutes.GET("/match/problem-statuses", controllers.GetProblemStatuses())
-	incomingRoutes.POST("/matches/:match_id/players/:player_id/problems/:problem_number/problem_status", controllers.CreateProblemStatus())
+	incomingRoutes.GET("/match/:match_id/problem/:problem_number/problem-status", controllers.GetProblemStatus())
+	incomingRoutes.GET("/match/:match_id/problem-statuses", controllers.GetProblemStatuses())
+	incomingRoutes.POST("/match/:match_id/:problem_number/problem-status", controllers.CreateProblemStatus())
 }
