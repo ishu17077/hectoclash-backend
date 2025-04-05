@@ -13,7 +13,7 @@ import (
 
 var isMatchRequestCollectionChanged bool = true
 
-var requestCollection = database.OpenCollection(database.Client, "match_requests")
+var matchRequestCollection = database.OpenCollection(database.Client, "match_requests")
 
 func GetMatchRequests() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -22,7 +22,7 @@ func GetMatchRequests() gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 		defer cancel()
-		result, err := requestCollection.Find(ctx, bson.M{"to_id": playerId, "status": "NOTSEEN"})
+		result, err := matchRequestCollection.Find(ctx, bson.M{"to_id": playerId, "status": "NOTSEEN"})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding"})
 		}
@@ -45,7 +45,7 @@ func GetSentRequests() gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 		defer cancel()
-		result, err := requestCollection.Find(ctx, bson.M{"from_id": playerId, "status": "NOTSEEN"})
+		result, err := matchRequestCollection.Find(ctx, bson.M{"from_id": playerId, "status": "NOTSEEN"})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding"})
 		}
@@ -64,11 +64,11 @@ func GetSentRequests() gin.HandlerFunc {
 func RemoveSentRequest() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerId := c.GetString("uid")
-		match_request_id := c.Param("request_id")
+		match_request_id := c.Param("match_request_id")
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 		defer cancel()
-		result, err := requestCollection.DeleteOne(ctx, bson.M{"match_request_id": match_request_id, "from_id": playerId})
+		result, err := matchRequestCollection.DeleteOne(ctx, bson.M{"match_request_id": match_request_id, "from_id": playerId})
 		isMatchRequestCollectionChanged = true
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding any request"})
@@ -82,11 +82,11 @@ func RemoveSentRequest() gin.HandlerFunc {
 func RespondRequest() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		playerId := c.GetString("uid")
-		match_request_id := c.Param("request_id")
+		match_request_id := c.Param("match_request_id")
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 		defer cancel()
-		result, err := requestCollection.DeleteOne(ctx, bson.M{"match_request_id": match_request_id, "to_id": playerId})
+		result, err := matchRequestCollection.DeleteOne(ctx, bson.M{"match_request_id": match_request_id, "to_id": playerId})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding any request"})
 			return
@@ -114,7 +114,7 @@ func SendMatchRequest() gin.HandlerFunc {
 		}
 		matchRequest.Match_request_id = matchRequest.ID.Hex()
 		defer cancel()
-		_, err := requestCollection.InsertOne(ctx, matchRequest)
+		_, err := matchRequestCollection.InsertOne(ctx, matchRequest)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding any request"})
 			return
@@ -126,17 +126,32 @@ func SendMatchRequest() gin.HandlerFunc {
 
 //TODO: Match_req_acceptedl
 
-// func makeChanListen() {
-// 	changeStream, _ := requestCollection.Watch(context.Background(), bson.M{"to_id": "67f160b4d8fbf20b874532ab"})
-// 	defer changeStream.Close(context.Background())
-// 	for changeStream.Next(context.TODO()) {
-// 		fmt.Println(changeStream.Current)
-// 		fmt.Printf("POD name is: %v", changeStream.Current.Lookup("pod_name"))
-// 	}
-
-// 	fmt.Println("Watching Ended....")
-// }
-
-// func init(){
-// 	makeChanListen()
-// }
+func UpdateMessageRequest() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		playerId := c.GetString("uid")
+		response := c.Query("response")
+		matchRequestId := c.Param("match_request_id")
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var matchRequest models.MatchRequest
+		defer cancel()
+		if response == "IGNORED" || response == "ACCEPTED" || response == "NOTSEEN" {
+			err := matchRequestCollection.FindOneAndUpdate(ctx, bson.M{"match_request_id": matchRequestId, "to_id": playerId}, bson.M{"status": response}).Decode(&matchRequest)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error writing to match request."})
+			}
+		}
+		if response == "ACCEPTED" {
+			defer cancel()
+			var match models.Match
+			err := matchesCollection.FindOneAndUpdate(
+				ctx,
+				bson.M{"match_id": matchRequest.Match_id},
+				bson.M{"$addToSet": bson.M{"player_ids": playerId}},
+			).Decode(&match)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error writing to match."})
+			}
+		}
+		c.JSON(http.StatusOK, matchRequest)
+	}
+}

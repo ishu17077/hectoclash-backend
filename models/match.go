@@ -14,6 +14,7 @@ type Match struct {
 	Created_at           time.Time          `json:"created_at"`
 	Updated_at           time.Time          `json:"updated_at"`
 	Started_at           time.Time          `json:"started_at"`
+	Match_type           *string            `json:"match_type" validate:"required,eq=SOLO||eq=DUAL"`
 	Is_started           bool               `json:"is_started"`
 	Is_private           bool               `json:"is_private"`
 	Created_by_player_id *string            `json:"created_by_player_id" validate:"required"`
