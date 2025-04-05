@@ -19,20 +19,18 @@ import (
 var userCollection *mongo.Collection = database.OpenCollection(database.Client, "users")
 
 type SignedDetails struct {
-	Email      string
-	First_name string
-	Last_name  string
-	Uid        string
+	Email    string
+	Username string
+	Uid      string
 	jwt.RegisteredClaims
 }
 
 var secretKey string = os.Getenv("SECRET_KEY")
 
-func GenerateAllTokens(email string, firstName string, lastName string, uid string) (signedToken string, refreshToken string, err error) {
+func GenerateAllTokens(email string, username string, uid string) (signedToken string, refreshToken string, err error) {
 	claims := &SignedDetails{
 		Email:      email,
-		First_name: firstName,
-		Last_name:  lastName,
+		Username:   username,
 		Uid:        uid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Local().Add(time.Hour * time.Duration(24))),

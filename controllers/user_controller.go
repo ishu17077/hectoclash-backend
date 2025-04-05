@@ -76,6 +76,7 @@ func GetUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		userId := c.GetString("uid")
+		fmt.Print(userId)
 		var user models.User
 		err := userCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&user)
 		defer cancel()
@@ -84,16 +85,17 @@ func GetUser() gin.HandlerFunc {
 			return
 		}
 		var userREST models.UserREST = models.UserREST{
-			First_name: user.First_name,
-			Last_name:  user.Last_name,
-			Avatar:     user.Avatar,
+			Username: user.Username,
+			Avatar:   user.Avatar,
+			Password: user.Password,
+			Email:    user.Email,
+			Phone:    user.Phone,
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"first_name": userREST.First_name,
-			"last_name":  userREST.Last_name,
-			"email":      userREST.Email,
-			"phone":      userREST.Phone,
-			"avatar":     userREST.Avatar,
+			"username": userREST.Username,
+			"email":    userREST.Email,
+			"phone":    userREST.Phone,
+			"avatar":   userREST.Avatar,
 		})
 	}
 }
@@ -116,8 +118,7 @@ func SignUp() gin.HandlerFunc {
 		user.Email = userREST.Email
 		user.Phone = userREST.Phone
 		user.Password = userREST.Password
-		user.First_name = userREST.First_name
-		user.Last_name = userREST.Last_name
+		user.Username = userREST.Username
 		user.Avatar = userREST.Avatar
 		user.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
@@ -155,7 +156,7 @@ func SignUp() gin.HandlerFunc {
 
 		//* generate token and refresh tokens (generate all tokens from helper)
 
-		token, refeshToken, _ := helpers.GenerateAllTokens(*user.Email, *user.First_name, *user.Last_name, user.User_id)
+		token, refeshToken, _ := helpers.GenerateAllTokens(*user.Email, *user.Username, user.User_id)
 		user.Token = &token
 		user.Refresh_token = &refeshToken
 		//* if all okay, insert this new user to user collection
@@ -166,15 +167,7 @@ func SignUp() gin.HandlerFunc {
 			return
 		}
 		//* return statusOk and send the result back
-		c.JSON(http.StatusOK, gin.H{
-			"first_name":    userREST.First_name,
-			"last_name":     userREST.Last_name,
-			"email":         userREST.Email,
-			"phone":         userREST.Phone,
-			"avatar":        userREST.Avatar,
-			"token":         *(user.Token),
-			"refresh_token": *(user.Refresh_token),
-		})
+		c.JSON(http.StatusOK, user)
 	}
 }
 
@@ -213,15 +206,14 @@ func Login() gin.HandlerFunc {
 			return
 		}
 		//* if all goes well, then you'll generate tokens
-		token, refreshToken, _ := helpers.GenerateAllTokens(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, *&foundUser.User_id)
+		token, refreshToken, _ := helpers.GenerateAllTokens(*foundUser.Email, *foundUser.Username, *&foundUser.User_id)
 
 		//* update tokens - token and refresh tokens
 		helpers.UpdateAllTokens(token, refreshToken, foundUser.User_id)
 
 		//* return StatusOK
 		c.JSON(http.StatusOK, gin.H{
-			"first_name":    foundUser.First_name,
-			"last_name":     foundUser.Last_name,
+			"username":      foundUser.Username,
 			"email":         foundUser.Email,
 			"avatar":        foundUser.Avatar,
 			"phone":         foundUser.Phone,

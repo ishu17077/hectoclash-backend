@@ -8,13 +8,11 @@ import (
 
 type User struct {
 	ID            primitive.ObjectID `bson:"_id"`
-	First_name    *string            `json:"first_name" validate:"required,min=2,max=100"`
-	Last_name     *string            `json:"last_name" validate:"required,min=2,max=100"`
+	Username      *string            `json:"username" validate:"required,min=2,max=100"`
 	Password      *string            `json:"password" validate:"required,min=6"`
 	Email         *string            `json:"email" validate:"email,required"`
 	Avatar        *string            `json:"avatar"`
 	Phone         *string            `json:"phone"`
-	Points        uint32             `json:"points"`
 	Token         *string            `json:"token"`
 	Refresh_token *string            `json:"refresh_token"`
 	Created_at    time.Time          `json:"created_at"`
@@ -24,10 +22,9 @@ type User struct {
 }
 
 type UserREST struct {
-	First_name *string `json:"first_name" validate:"required,min=2,max=100"`
-	Last_name  *string `json:"last_name" validate:"required,min=2,max=100"`
-	Password   *string `json:"password" validate:"required,min=6"`
-	Email      *string `json:"email" validate:"email,required"`
-	Avatar     *string `json:"avatar"`
-	Phone      *string `json:"phone"`
+	Username *string `json:"username" validate:"required,min=2,max=100"`
+	Password *string `json:"password" validate:"required,min=6"`
+	Email    *string `json:"email" validate:"email,required"`
+	Avatar   *string `json:"avatar"`
+	Phone    *string `json:"phone"`
 }

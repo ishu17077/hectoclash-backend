@@ -10,6 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+var isPlayerScorecardCollectionChanged = true
+
 func GetPlayerScorecard() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)

@@ -11,6 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+var isMatchRequestCollectionChanged bool = true
+
 var requestCollection = database.OpenCollection(database.Client, "match_requests")
 
 func GetMatchRequests() gin.HandlerFunc {
@@ -67,6 +69,7 @@ func RemoveSentRequest() gin.HandlerFunc {
 
 		defer cancel()
 		result, err := requestCollection.DeleteOne(ctx, bson.M{"match_request_id": match_request_id, "from_id": playerId})
+		isMatchRequestCollectionChanged = true
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding any request"})
 			return
@@ -122,3 +125,18 @@ func SendMatchRequest() gin.HandlerFunc {
 }
 
 //TODO: Match_req_acceptedl
+
+// func makeChanListen() {
+// 	changeStream, _ := requestCollection.Watch(context.Background(), bson.M{"to_id": "67f160b4d8fbf20b874532ab"})
+// 	defer changeStream.Close(context.Background())
+// 	for changeStream.Next(context.TODO()) {
+// 		fmt.Println(changeStream.Current)
+// 		fmt.Printf("POD name is: %v", changeStream.Current.Lookup("pod_name"))
+// 	}
+
+// 	fmt.Println("Watching Ended....")
+// }
+
+// func init(){
+// 	makeChanListen()
+// }

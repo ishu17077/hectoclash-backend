@@ -27,6 +27,8 @@ var problemStatusCollection *mongo.Collection = database.OpenCollection(database
 var playerScorecardCollection *mongo.Collection = database.OpenCollection(database.Client, "player_scorecard")
 var validate *validator.Validate = validator.New()
 
+var isMatchCollectionChanged bool = true
+
 func GetMatches() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -140,6 +142,7 @@ func CreateMatch() gin.HandlerFunc {
 		// if err != nil {
 		// 	log.Fatal(err)
 		// }
+		isMatchCollectionChanged = true
 		c.JSON(http.StatusOK, result)
 
 	}
@@ -236,9 +239,10 @@ func StartMatch() gin.HandlerFunc {
 
 			_, err = matchProblemsCollection.InsertMany(ctx, matchProblemsInterface)
 			if err != nil {
-				log.Fatal(err)
+				log.Print(err)
 
 			}
+			isMatchProblemCollectionChanged = true
 			defer cancel()
 
 			var playerScorecard models.PlayerScorecard = models.PlayerScorecard{
@@ -256,6 +260,7 @@ func StartMatch() gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error adding player scorecard"})
 				return
 			}
+			isPlayerScorecardCollectionChanged = true
 			go func(matchId string, playerId string) {
 				time.Sleep(20 * time.Minute) // Wait for 20 minutes
 
@@ -268,11 +273,12 @@ func StartMatch() gin.HandlerFunc {
 				_, err := matchesCollection.UpdateOne(ctx, bson.M{"match_id": matchId}, bson.D{
 					{Key: "$set", Value: bson.D{{Key: "is_ended", Value: true}}},
 				})
+
 				if err != nil {
 					log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
 				}
 				currentTime, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-
+				isMatchCollectionChanged = true
 				updateObj = bson.D{
 					{Key: "$set", Value: bson.D{
 						{Key: "attempt_ended", Value: true},
@@ -287,12 +293,14 @@ func StartMatch() gin.HandlerFunc {
 				}
 
 				_, err = playerScorecardCollection.UpdateOne(ctx, bson.M{"match_id": matchId, "player_id": playerId}, bson.D{{Key: "$set", Value: updateObj}})
+				
 
 				if err != nil {
 					log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
 				}
+				isPlayerScorecardCollectionChanged = true
 			}(matchId, playerId)
-
+			isMatchCollectionChanged = true
 			c.JSON(http.StatusOK, matchProblems)
 		} else {
 			c.JSON(http.StatusOK, existingMatchProblems)
