@@ -56,10 +56,12 @@ func CreateProblemTime() gin.HandlerFunc {
 		var problemTimeREST models.ProblemTimeREST
 		if err := c.BindJSON(&problemTimeREST); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			cancel()
 			return
 		}
 		if problemTimeREST.Problem_number < 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Please pass match_id and problem number"})
+			cancel()
 			return
 		}
 

@@ -20,6 +20,7 @@ import (
 
 var userCollection *mongo.Collection = database.OpenCollection(database.Client, "users")
 
+//! Internal Function to query
 func GetUsers() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -90,8 +91,8 @@ func GetUser() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"first_name": userREST.First_name,
 			"last_name":  userREST.Last_name,
-			"email": userREST.Email,
-			"phone": userREST.Phone,
+			"email":      userREST.Email,
+			"phone":      userREST.Phone,
 			"avatar":     userREST.Avatar,
 		})
 	}

@@ -99,7 +99,6 @@ github.com/leodido/go-urn/scim/schema
 github.com/mattn/go-isatty
 # github.com/mnogu/go-calculator v0.0.1
 ## explicit; go 1.15
-github.com/mnogu/go-calculator
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
