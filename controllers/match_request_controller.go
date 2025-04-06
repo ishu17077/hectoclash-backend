@@ -131,7 +131,7 @@ func UpdateMessageRequest() gin.HandlerFunc {
 		playerId := c.GetString("uid")
 		response := c.Query("response")
 		matchRequestId := c.Param("match_request_id")
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var ctx, cancel = context.WithTimeout(context.TODO(), 100*time.Second)
 		var matchRequest models.MatchRequest
 		defer cancel()
 		if response == "IGNORED" || response == "ACCEPTED" || response == "NOTSEEN" {

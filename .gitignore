@@ -1,0 +1,6 @@
+*.env*
+.env
+generator/hectoc-gen.py
+
+
+

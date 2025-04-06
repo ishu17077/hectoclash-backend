@@ -2,8 +2,6 @@ module github.com/ishu17077/hectoclash-backend
 
 go 1.24.1
 
-require github.com/mnogu/go-calculator v0.0.1
-
 require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect

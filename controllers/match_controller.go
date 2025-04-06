@@ -107,6 +107,8 @@ func CreateMatch() gin.HandlerFunc {
 			cancel()
 			return
 		}
+
+		match.Problems = matchREST.Problems
 		match.ID = primitive.NewObjectID()
 		match.Match_code = uint32(rand.Int31n(899999) + 100000)
 		//TODO: To be implemented: random number check in database
@@ -119,19 +121,21 @@ func CreateMatch() gin.HandlerFunc {
 		}(match.Problems)) // Replace 10 and 20 with actual values for 'a' and 'b'
 		fmt.Print(match.Match_duration.Minutes())
 		match.Match_id = match.ID.Hex()
+		match.Match_type = *matchREST.Match_type
 		match.Is_started = false
-		match.Created_by_player_id = &playerId
+		match.Created_by_player_id = playerId
 		match.Is_ended = false
 		match.Viewers = 0
+		match.Is_private = false
 		match.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		match.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		match.Player_ids = []string{playerId}
-
-		if validationErr := validate.Struct(&match); validationErr != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
-			cancel()
-			return
-		}
+		// Validate the match struct
+		// if validationErr := validate.Struct(&match); validationErr != nil {
+		// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + validationErr.Error()})
+		// 	cancel()
+		// 	return
+		// }
 		defer cancel()
 		result, insertErr := matchesCollection.InsertOne(ctx, match)
 		if insertErr != nil {
@@ -141,9 +145,17 @@ func CreateMatch() gin.HandlerFunc {
 		// _, err := InitializeMatchComponents(match)
 		// if err != nil {
 		// 	log.Fatal(err)
-		// }
-		isMatchCollectionChanged = true
-		c.JSON(http.StatusOK, result)
+		//
+		if match.Match_type == "SOLO" {
+			startMatchHandler := StartMatch()
+			c.Params = append(c.Params, gin.Param{Key: "match_id", Value: match.Match_id})
+			startMatchHandler(c)
+
+		} else {
+			c.JSON(http.StatusOK, result)
+		}
+
+		return
 
 	}
 }
@@ -278,7 +290,7 @@ func StartMatch() gin.HandlerFunc {
 					log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
 				}
 				currentTime, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-				isMatchCollectionChanged = true
+
 				updateObj = bson.D{
 					{Key: "$set", Value: bson.D{
 						{Key: "attempt_ended", Value: true},
@@ -293,17 +305,62 @@ func StartMatch() gin.HandlerFunc {
 				}
 
 				_, err = playerScorecardCollection.UpdateOne(ctx, bson.M{"match_id": matchId, "player_id": playerId}, bson.D{{Key: "$set", Value: updateObj}})
-				
 
 				if err != nil {
 					log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
 				}
-				isPlayerScorecardCollectionChanged = true
+
 			}(matchId, playerId)
-			isMatchCollectionChanged = true
-			c.JSON(http.StatusOK, matchProblems)
+
+			filter := bson.D{
+				bson.E{Key: "$in", Value: func() []string {
+					var ids []string
+					for _, matchProblem := range matchProblems {
+						ids = append(ids, *&matchProblem.Match_problem_id)
+					}
+					return ids
+				},
+				}}
+
+			defer cancel()
+			matchStage := bson.D{{Key: "$match", Value: bson.E{Key: "match_problem_id", Value: filter}}}
+			leftJoinAggregation := bson.D{{Key: "$lookup", Value: bson.D{
+				bson.E{Key: "from", Value: "problems"},
+				bson.E{Key: "localField", Value: "problem_id"},
+				bson.E{Key: "foreignField", Value: "problem_id"},
+				bson.E{Key: "as", Value: "problems"},
+			}}}
+			res, err := matchProblemsCollection.Aggregate(ctx, mongo.Pipeline{matchStage, leftJoinAggregation})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, res)
 		} else {
-			c.JSON(http.StatusOK, existingMatchProblems)
+			filter := bson.D{
+				bson.E{Key: "$in", Value: func() []string {
+					var ids []string
+					for _, matchProblem := range existingMatchProblems {
+						ids = append(ids, *&matchProblem.Match_problem_id)
+					}
+					return ids
+				},
+				}}
+
+			defer cancel()
+			matchStage := bson.D{{Key: "$match", Value: bson.E{Key: "match_problem_id", Value: filter}}}
+			leftJoinAggregation := bson.D{{Key: "$lookup", Value: bson.D{
+				bson.E{Key: "from", Value: "problems"},
+				bson.E{Key: "localField", Value: "problem_id"},
+				bson.E{Key: "foreignField", Value: "problem_id"},
+				bson.E{Key: "as", Value: "problems"},
+			}}}
+			res, err := matchProblemsCollection.Aggregate(ctx, mongo.Pipeline{matchStage, leftJoinAggregation})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occured while listing items."})
+				return
+			}
+			c.JSON(http.StatusOK, res)
 		}
 
 	}
