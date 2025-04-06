@@ -1,0 +1,32 @@
+@import url("https://rsms.me/inter/inter.css");
+@import url('https://fonts.googleapis.com/css2?family=Micro+5&display=swap');
+@import 'tailwindcss';
+
+:root {
+    font-family: Inter, sans-serif;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+    /* fix for Chrome */
+    background-color: #000;
+    color: #fff;
+    transition: background cubic-bezier();
+}
+
+@supports (font-variation-settings: normal) {
+    :root {
+        font-family: InterVariable, sans-serif;
+        background-color: #000;
+        color: #fff;
+        transition: background cubic-bezier();
+    }
+}
+
+h1 {
+    font-family: "Micro 5", sans-serif;
+    font-size: 3rem;
+    line-height: 1;
+}
+
+h2 {
+    font-family: "Micro 5", sans-serif;
+    line-height: 1;
+}
