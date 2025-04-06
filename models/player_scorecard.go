@@ -26,4 +26,5 @@ type PlayerScorecardREST struct {
 	Start_time          time.Time `json:"start_time"`
 	End_time            time.Time `json:"end_time"`
 	Attempt_ended       bool      `json:"attempt_ended"`
+	Total_points        int       `json:"total_points"`
 }

@@ -150,6 +150,8 @@ func CreateProblemStatus() gin.HandlerFunc {
 			}
 
 			_, err = playerScorecardCollection.UpdateOne(ctx, filter, update)
+			_, err = userCollection.UpdateOne(ctx, bson.M{"user_id": playerId}, update)
+
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating score card"})
 				return

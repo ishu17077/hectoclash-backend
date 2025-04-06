@@ -90,12 +90,15 @@ func GetUser() gin.HandlerFunc {
 			Password: user.Password,
 			Email:    user.Email,
 			Phone:    user.Phone,
+			User_id: user.User_id,
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"username": userREST.Username,
 			"email":    userREST.Email,
 			"phone":    userREST.Phone,
 			"avatar":   userREST.Avatar,
+			"user_id":	user.User_id,
+
 		})
 	}
 }
@@ -219,6 +222,7 @@ func Login() gin.HandlerFunc {
 			"phone":         foundUser.Phone,
 			"token":         foundUser.Token,
 			"refresh_token": foundUser.Refresh_token,
+			"user_id":		foundUser.User_id,
 		})
 	}
 }

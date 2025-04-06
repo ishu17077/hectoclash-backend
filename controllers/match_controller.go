@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"context"
-	"fmt"
+
 	"log"
 	"math/rand"
 	"net/http"
@@ -107,21 +107,51 @@ func CreateMatch() gin.HandlerFunc {
 			cancel()
 			return
 		}
+		defer cancel()
+		// result, err := matchesCollection.Find(ctx, bson.M{"created_by_player_id": playerId, "is_ended": false})
+
+		// if err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 	return
+		// }
+		// var allMatches []models.Match
+		// if result.RemainingBatchLength() > 0 {
+		// 	if err := result.All(ctx, &allMatches); err == nil {
+
+		// 		matchStage := bson.D{
+		// 			{Key: "$match", Value: bson.D{{Key: "match_id", Value: allMatches[0].Match_id}}},
+		// 		}
+		// 		aggregationStage := bson.D{
+		// 			{Key: "$lookup", Value: bson.D{
+		// 				{Key: "from", Value: "problems"},
+		// 				{Key: "localField", Value: "problem_id"},
+		// 				{Key: "foreignField", Value: "problem_id"},
+		// 				{Key: "as", Value: "problems"},
+		// 			}}}
+		// 		defer cancel()
+		// 		res, err := matchesCollection.Aggregate(ctx, mongo.Pipeline{matchStage, aggregationStage})
+		// 		if err == nil {
+		// 			var existingMatchProblems []models.MatchProblem
+		// 			result, err = matchProblemsCollection.Find(ctx, bson.M{"match_id": allMatches[0].Match_id})
+		// 			if err := result.All(ctx, &existingMatchProblems); err == nil {
+		// 				for matchProblems in
+
+		// 				var jsony []bson.M
+		// 				if err := res.All(ctx, &jsony); err == nil {
+		// 					c.JSON(http.StatusOK, jsony)
+		// 					return
+		// 				}
+		// 			}
+
+		// 		}
 
 		match.Problems = matchREST.Problems
 		match.ID = primitive.NewObjectID()
 		match.Match_code = uint32(rand.Int31n(899999) + 100000)
 		//TODO: To be implemented: random number check in database
-		match.Match_duration = time.Minute * time.Duration(func(problems uint8) uint8 {
-			if problems == 0 || problems > 10 {
-				match.Problems = 10
-				return 10
-			}
-			return problems
-		}(match.Problems)) // Replace 10 and 20 with actual values for 'a' and 'b'
-		fmt.Print(match.Match_duration.Minutes())
+		// Replace 10 and 20 with actual values for 'a' and 'b'
 		match.Match_id = match.ID.Hex()
-		match.Match_type = *matchREST.Match_type
+		match.Match_type = matchREST.Match_type
 		match.Is_started = false
 		match.Created_by_player_id = playerId
 		match.Is_ended = false
@@ -137,7 +167,7 @@ func CreateMatch() gin.HandlerFunc {
 		// 	return
 		// }
 		defer cancel()
-		result, insertErr := matchesCollection.InsertOne(ctx, match)
+		_, insertErr := matchesCollection.InsertOne(ctx, match)
 		if insertErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": insertErr.Error()})
 			return
@@ -152,11 +182,10 @@ func CreateMatch() gin.HandlerFunc {
 			startMatchHandler(c)
 
 		} else {
-			c.JSON(http.StatusOK, result)
+			// c.JSON(http.StatusOK, result)
 		}
 
 		return
-
 	}
 }
 
@@ -186,7 +215,7 @@ func StartMatch() gin.HandlerFunc {
 			Upsert: &upsert,
 		}
 
-		filter := bson.M{"match_id": matchId, "created_by_player_id": playerId, "is_ended": false}
+		filter := bson.M{"created_by_player_id": playerId, "is_ended": false}
 
 		defer cancel()
 		err := matchesCollection.FindOneAndUpdate(ctx, filter, bson.D{
@@ -219,7 +248,7 @@ func StartMatch() gin.HandlerFunc {
 			var problems []models.Problem
 
 			aggregation := []bson.M{
-				{"$sample": bson.M{"size": match.Problems}},
+				{"$sample": bson.M{"size": int(match.Problems)}},
 			}
 			defer cancel()
 			result, err := problemCollection.Aggregate(ctx, aggregation)
@@ -272,83 +301,51 @@ func StartMatch() gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error adding player scorecard"})
 				return
 			}
-			isPlayerScorecardCollectionChanged = true
-			go func(matchId string, playerId string) {
-				time.Sleep(20 * time.Minute) // Wait for 20 minutes
 
-				var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+			routineUpdateUnusedMatches(matchId, playerId)
 
-				var updateObj primitive.D
-
-				defer cancel()
-
-				_, err := matchesCollection.UpdateOne(ctx, bson.M{"match_id": matchId}, bson.D{
-					{Key: "$set", Value: bson.D{{Key: "is_ended", Value: true}}},
-				})
-
-				if err != nil {
-					log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
-				}
-				currentTime, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-
-				updateObj = bson.D{
-					{Key: "$set", Value: bson.D{
-						{Key: "attempt_ended", Value: true},
-						{Key: "end_time", Value: bson.M{
-							"$cond": bson.M{
-								"if":   bson.M{"$eq": []interface{}{"$end_time", nil}},
-								"then": currentTime,
-								"else": "$end_time",
-							},
-						}},
-					}},
-				}
-
-				_, err = playerScorecardCollection.UpdateOne(ctx, bson.M{"match_id": matchId, "player_id": playerId}, bson.D{{Key: "$set", Value: updateObj}})
-
-				if err != nil {
-					log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
-				}
-
-			}(matchId, playerId)
-
-			filter := bson.D{
-				bson.E{Key: "$in", Value: func() []string {
-					var ids []string
-					for _, matchProblem := range matchProblems {
-						ids = append(ids, *&matchProblem.Match_problem_id)
-					}
-					return ids
-				},
-				}}
+			var ids []string
+			for _, matchProblem := range matchProblems {
+				ids = append(ids, *&matchProblem.Match_problem_id)
+			}
+			if len(ids) == 0 {
+				c.JSON(http.StatusNotFound, gin.H{"error": "No match problems found."})
+				return
+			}
+			filter := bson.D{{Key: "match_problem_id", Value: bson.D{{Key: "$in", Value: ids}}}}
 
 			defer cancel()
-			matchStage := bson.D{{Key: "$match", Value: bson.E{Key: "match_problem_id", Value: filter}}}
+			matchStage := bson.D{{Key: "$match", Value: filter}}
 			leftJoinAggregation := bson.D{{Key: "$lookup", Value: bson.D{
-				bson.E{Key: "from", Value: "problems"},
-				bson.E{Key: "localField", Value: "problem_id"},
-				bson.E{Key: "foreignField", Value: "problem_id"},
-				bson.E{Key: "as", Value: "problems"},
+				{Key: "from", Value: "problems"},
+				{Key: "localField", Value: "problem_id"},
+				{Key: "foreignField", Value: "problem_id"},
+				{Key: "as", Value: "problems"},
+				// $match value
+
 			}}}
 			res, err := matchProblemsCollection.Aggregate(ctx, mongo.Pipeline{matchStage, leftJoinAggregation})
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusOK, res)
+			var matchProblemsNoProb []bson.M
+			_ = res.All(ctx, &matchProblemsNoProb)
+			c.JSON(http.StatusOK, matchProblemsNoProb)
 		} else {
-			filter := bson.D{
-				bson.E{Key: "$in", Value: func() []string {
-					var ids []string
-					for _, matchProblem := range existingMatchProblems {
-						ids = append(ids, *&matchProblem.Match_problem_id)
-					}
-					return ids
-				},
-				}}
+			var ids []string
+			for _, matchProblem := range existingMatchProblems {
+				ids = append(ids, *&matchProblem.Match_problem_id)
+			}
+			if len(ids) == 0 {
+				c.JSON(http.StatusNotFound, gin.H{"error": "No match problems found."})
+				return
+			}
+
+			filter := bson.D{{Key: "match_problem_id", Value: bson.D{{Key: "$in", Value: ids}}}}
 
 			defer cancel()
-			matchStage := bson.D{{Key: "$match", Value: bson.E{Key: "match_problem_id", Value: filter}}}
+			matchStage := bson.D{{Key: "$match", Value: filter}}
 			leftJoinAggregation := bson.D{{Key: "$lookup", Value: bson.D{
 				bson.E{Key: "from", Value: "problems"},
 				bson.E{Key: "localField", Value: "problem_id"},
@@ -357,11 +354,58 @@ func StartMatch() gin.HandlerFunc {
 			}}}
 			res, err := matchProblemsCollection.Aggregate(ctx, mongo.Pipeline{matchStage, leftJoinAggregation})
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occured while listing items."})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while listing items."})
 				return
 			}
-			c.JSON(http.StatusOK, res)
+
+			var matchProblemsNoProb []bson.M
+			if err := res.All(ctx, &matchProblemsNoProb); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while decoding match problems."})
+				return
+			}
+
+			c.JSON(http.StatusOK, matchProblemsNoProb)
 		}
 
 	}
+}
+
+func routineUpdateUnusedMatches(matchId string, playerId string) {
+	go func(matchId string, playerId string) {
+		time.Sleep(20 * time.Minute) // Wait for 20 minutes
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var updateObj bson.D = bson.D{
+			{Key: "$set", Value: bson.D{
+				{Key: "is_started", Value: true},
+				{Key: "is_ended", Value: true},
+			}}}
+
+		_, err := matchesCollection.UpdateOne(ctx, bson.M{"match_id": matchId}, updateObj)
+		if err != nil {
+			log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
+		}
+		currentTime, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+
+		defer cancel()
+		updateObj = bson.D{
+			{Key: "$set", Value: bson.D{
+				{Key: "attempt_ended", Value: true},
+				{Key: "end_time", Value: bson.D{
+					{Key: "$cond", Value: bson.D{
+						{Key: "if", Value: bson.E{Key: "$eq", Value: []any{"$end_time", nil}}},
+						{Key: "then", Value: currentTime},
+						{Key: "else", Value: "$end_time"},
+					}},
+				}},
+			}},
+		}
+
+		_, err = playerScorecardCollection.UpdateOne(ctx, bson.M{"match_id": matchId, "player_id": playerId}, updateObj)
+
+		if err != nil {
+			log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
+		}
+
+	}(matchId, playerId)
 }

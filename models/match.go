@@ -27,10 +27,10 @@ type Match struct {
 type MatchREST struct {
 	Match_code           uint32        `json:"match_code"`
 	Problems             uint8         `json:"problems"`
-	Created_by_player_id *string       `json:"created_by_player_id"`
+	Created_by_player_id string        `json:"created_by_player_id"`
 	Player_ids           []string      `json:"player_ids" validate:"required"`
-	Match_id             *string       `json:"match_id"`
-	Match_type           *string       `json:"match_type" validate:"required,oneof=SOLO DUAL"`
+	Match_id             string        `json:"match_id"`
+	Match_type           string        `json:"match_type" validate:"required,oneof=SOLO DUAL"`
 	Match_duration       time.Duration `json:"match_duration"`
 	Is_private           bool          `json:"is_private"`
 	Is_ended             bool          `json:"is_ended"`

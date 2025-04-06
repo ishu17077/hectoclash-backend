@@ -59,14 +59,15 @@ func GetMatchProblems() gin.HandlerFunc {
 	}
 }
 
-func checkResponse(c *gin.Context, cancel context.CancelFunc) bool {
-	if c.Request.Body == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body is empty"})
-		cancel()
-		return true
-	}
-	return false
-}
+//TODO: Future Implementation
+// func checkResponse(c *gin.Context, cancel context.CancelFunc) bool {
+// 	if c.Request.Body == nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body is empty"})
+// 		cancel()
+// 		return true
+// 	}
+// 	return false
+// }
 
 func GetMatchProblem() gin.HandlerFunc {
 	return func(c *gin.Context) {

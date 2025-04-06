@@ -27,4 +27,5 @@ type UserREST struct {
 	Email    *string `json:"email" validate:"email,required"`
 	Avatar   *string `json:"avatar"`
 	Phone    *string `json:"phone"`
+	User_id  string  `json:"user_id"`
 }

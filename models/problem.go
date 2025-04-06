@@ -11,6 +11,7 @@ type Problem struct {
 	Problem_components []string           `json:"problem_components" validate:"required"`
 	Answer             int32              `json:"answer" validate:"required"`
 	Right_sequence     []string           `json:"right_sequence"`
+	Operators          []string           `json:"operators"`
 	Points             uint16             `json:"points" validate:"required"`
 	Solve_time         time.Duration      `json:"solve_time" validate:"required"`
 	Min_points         uint16             `json:"min_points"`

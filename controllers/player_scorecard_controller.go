@@ -10,8 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var isPlayerScorecardCollectionChanged = true
-
 func GetPlayerScorecard() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -25,11 +23,36 @@ func GetPlayerScorecard() gin.HandlerFunc {
 
 		defer cancel()
 		err := playerScorecardCollection.FindOne(ctx, filter).Decode(&playerScorecard)
-		if err != nil{
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Score card for the following is not available."})
 		}
 
-
 		c.JSON(http.StatusOK, playerScorecard)
+	}
+}
+
+func CreatePlayerScoreCard() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		playerId := c.GetString("uid")
+
+		var playerScorecard models.PlayerScorecard
+
+		if err := c.BindJSON(&playerScorecardCollection); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			cancel()
+			return
+		}
+
+		playerScorecard.Player_id = playerId
+
+		defer cancel()
+		result, err := playerScorecardCollection.InsertOne(ctx, playerScorecard)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Score card for the following is not available."})
+		}
+
+		c.JSON(http.StatusOK, result)
 	}
 }
