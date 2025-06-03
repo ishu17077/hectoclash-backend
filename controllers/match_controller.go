@@ -372,7 +372,6 @@ func StartMatch() gin.HandlerFunc {
 
 func routineUpdateUnusedMatches(matchId string, playerId string) {
 	go func(matchId string, playerId string) {
-		time.Sleep(20 * time.Minute) // Wait for 20 minutes
 
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		var updateObj bson.D = bson.D{
@@ -380,14 +379,16 @@ func routineUpdateUnusedMatches(matchId string, playerId string) {
 				{Key: "is_started", Value: true},
 				{Key: "is_ended", Value: true},
 			}}}
-
+		time.Sleep(20 * time.Minute)
 		_, err := matchesCollection.UpdateOne(ctx, bson.M{"match_id": matchId}, updateObj)
 		if err != nil {
 			log.Printf("Error updating is_ended for match_id %s: %v", matchId, err)
 		}
+
 		currentTime, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 
 		defer cancel()
+
 		updateObj = bson.D{
 			{Key: "$set", Value: bson.D{
 				{Key: "attempt_ended", Value: true},
@@ -408,4 +409,54 @@ func routineUpdateUnusedMatches(matchId string, playerId string) {
 		}
 
 	}(matchId, playerId)
+}
+func AddPauseToCurrentMatches() bool {
+	var ctx, cancel = context.WithTimeout(context.TODO(), time.Minute)
+	var allMatchesToBePaused []models.Match
+	filter := bson.D{
+		{Key: "is_started", Value: true},
+		{Key: "is_ended", Value: false},
+	}
+	upsert := true
+	// var updateObj bson.D
+	opt := options.FindOneAndUpdateOptions{
+		Upsert: &upsert,
+	}
+
+	// updateObj = append(updateObj, bson.E{"was_interrupted", true})
+	// updateObj = append(updateObj, bson.E{"time_elapsed", })
+
+	var currentTime = time.Now()
+	defer cancel()
+	result, err := matchesCollection.Find(ctx, filter)
+
+	if err != nil {
+		log.Printf("Something is wrong finding the matches: %s", err.Error())
+		cancel()
+		return false
+	}
+
+	if err = result.All(ctx, &allMatchesToBePaused); err != nil {
+		log.Printf("Something is wrong parsing the matches: %s", err.Error())
+		cancel()
+		return false
+	}
+	defer cancel()
+	for _, matchToBePaused := range allMatchesToBePaused {
+		if currentTime.Unix()-matchToBePaused.Started_at.Unix() >= 1200 { //? 1200 seconds or 20 mins
+			matchToBePaused.Is_ended = true
+			matchToBePaused.Time_elapsed = 20 * time.Minute
+			matchToBePaused.Was_interrupted = false
+
+			matchesCollection.FindOneAndUpdate(ctx, bson.M{"match_id": matchToBePaused.Match_id}, matchToBePaused, &opt)
+			continue
+		}
+
+		matchToBePaused.Was_interrupted = true
+		matchToBePaused.Time_elapsed = time.Duration(currentTime.Unix()-matchToBePaused.Started_at.Unix()) * time.Second
+		matchesCollection.FindOneAndUpdate(ctx, bson.M{"match_id": matchToBePaused.Match_id}, matchToBePaused, &opt)
+
+	}
+
+	return true
 }

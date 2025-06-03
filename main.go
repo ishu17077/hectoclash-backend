@@ -1,13 +1,14 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 
 	"github.com/gin-gonic/gin"
 	// "github.com/ishu17077/hectoclash-backend/middlewares"
 
+	"github.com/ishu17077/hectoclash-backend/controllers"
 	"github.com/ishu17077/hectoclash-backend/middlewares"
 	"github.com/ishu17077/hectoclash-backend/routes"
 	// calculator "github.com/mnogu/go-calculator"
@@ -35,9 +36,12 @@ func main() {
 	router.SetTrustedProxies([]string{"127.0.0.1", "localhost", "192.168.232.61"}) //! Remember to change this
 	router.Run(":" + port)
 	<-stopChannel
-	log.Print("Shutting down Server at 8080")
-	/*
-	* Code here to reserve previous matches
-	*/
+	fmt.Println("Shutting down Server at 8080")
+	fmt.Println("Attempting to pause all current matches")
+	if controllers.AddPauseToCurrentMatches() {
+		fmt.Println("All Matches Paused Successfully")
+	} else {
+		fmt.Println("All Matches Pause Unsuccessful")
+	}
 
 }
