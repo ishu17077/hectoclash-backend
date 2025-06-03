@@ -42,7 +42,7 @@ func GetMatches() gin.HandlerFunc {
 		}
 		startIndex := (page - 1) * recordsPerPage
 		startIndex, _ = strconv.Atoi(c.Query("startIndex"))
-		matchStage := bson.D{{Key: "$match", Value: bson.D{{}}}}
+		matchStage := bson.D{{Key: "$match", Value: bson.D{{Key: "is_ended", Value: false}}}}
 		groupStage := bson.D{
 			{Key: "$group", Value: bson.D{
 				{Key: "_id", Value: bson.D{{Key: "_id", Value: "null"}}},

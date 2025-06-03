@@ -26,7 +26,8 @@ func DBInstance() *mongo.Client {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoDb))
 
 	if err != nil {
-		log.Fatal(err)
+		msg := fmt.Sprintf("Connection to MongoDB has failed :%s", err)
+		log.Fatal(msg);
 	}
 
 	fmt.Print("Connected to MongoDB Instance")

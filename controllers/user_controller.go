@@ -90,15 +90,14 @@ func GetUser() gin.HandlerFunc {
 			Password: user.Password,
 			Email:    user.Email,
 			Phone:    user.Phone,
-			User_id: user.User_id,
+			User_id:  user.User_id,
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"username": userREST.Username,
 			"email":    userREST.Email,
 			"phone":    userREST.Phone,
 			"avatar":   userREST.Avatar,
-			"user_id":	user.User_id,
-
+			"user_id":  user.User_id,
 		})
 	}
 }
@@ -209,7 +208,13 @@ func Login() gin.HandlerFunc {
 			return
 		}
 		//* if all goes well, then you'll generate tokens
-		token, refreshToken, _ := helpers.GenerateAllTokens(*foundUser.Email, *foundUser.Username, *&foundUser.User_id)
+		token, refreshToken, err := helpers.GenerateAllTokens(*foundUser.Email, *foundUser.Username, *&foundUser.User_id)
+		if err != nil {
+			msg = fmt.Sprintf("Error updating tokens for user ID %s: %s", foundUser.User_id, err)
+			log.Print(msg)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error signing you in please try again later"})
+			return
+		}
 
 		//* update tokens - token and refresh tokens
 		helpers.UpdateAllTokens(token, refreshToken, foundUser.User_id)
@@ -220,11 +225,13 @@ func Login() gin.HandlerFunc {
 			"email":         foundUser.Email,
 			"avatar":        foundUser.Avatar,
 			"phone":         foundUser.Phone,
-			"token":         foundUser.Token,
-			"refresh_token": foundUser.Refresh_token,
-			"user_id":		foundUser.User_id,
+			"token":         token,
+			"refresh_token": refreshToken,
+			"user_id":       foundUser.User_id,
 		})
+		return
 	}
+
 }
 
 func HashPassword(password string) string {

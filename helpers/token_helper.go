@@ -29,9 +29,9 @@ var secretKey string = os.Getenv("SECRET_KEY")
 
 func GenerateAllTokens(email string, username string, uid string) (signedToken string, refreshToken string, err error) {
 	claims := &SignedDetails{
-		Email:      email,
-		Username:   username,
-		Uid:        uid,
+		Email:    email,
+		Username: username,
+		Uid:      uid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Local().Add(time.Hour * time.Duration(24))),
 			//? Recommended time is 30 minutes but since we are building for test 24 hours is okay

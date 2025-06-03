@@ -15,6 +15,8 @@ type Match struct {
 	Updated_at           time.Time          `json:"updated_at"`
 	Started_at           time.Time          `json:"started_at"`
 	Match_type           string             `json:"match_type" validate:"required,oneof=SOLO DUAL"`
+	Was_interrupted      bool               `json:"was_interrupted" bson:"was_interrupted" default:"false"`
+	Time_elapsed         time.Duration      `json:"time_elapsed"`
 	Is_started           bool               `json:"is_started"`
 	Is_private           bool               `json:"is_private"`
 	Created_by_player_id string             `json:"created_by_player_id" validate:"required"`

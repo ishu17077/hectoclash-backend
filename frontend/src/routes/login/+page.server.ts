@@ -25,7 +25,7 @@ export const actions = {
                 cookies.set('token', body.token, { path: "/" })
                 console.log(user);
 
-                throw redirect(302, "/");
+                throw redirect(307, "/game")
             } else {
                 console.error(response.text());
             }
