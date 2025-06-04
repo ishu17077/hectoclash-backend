@@ -243,7 +243,7 @@ func StartMatch() gin.HandlerFunc {
 			return
 		}
 
-		if len(existingMatchProblems) <= 0 && match.Is_ended == false {
+		if len(existingMatchProblems) <= 0 && (match.Is_ended == false) {
 			var matchProblems []models.MatchProblem
 			var problems []models.Problem
 
@@ -370,6 +370,7 @@ func StartMatch() gin.HandlerFunc {
 	}
 }
 
+//! This shitty code works don't touch it jackass
 func routineUpdateUnusedMatches(matchId string, playerId string) {
 	go func(matchId string, playerId string) {
 
@@ -417,11 +418,6 @@ func AddPauseToCurrentMatches() bool {
 		{Key: "is_started", Value: true},
 		{Key: "is_ended", Value: false},
 	}
-	upsert := true
-	// var updateObj bson.D
-	opt := options.FindOneAndUpdateOptions{
-		Upsert: &upsert,
-	}
 
 	// updateObj = append(updateObj, bson.E{"was_interrupted", true})
 	// updateObj = append(updateObj, bson.E{"time_elapsed", })
@@ -443,18 +439,19 @@ func AddPauseToCurrentMatches() bool {
 	}
 	defer cancel()
 	for _, matchToBePaused := range allMatchesToBePaused {
+		// fmt.Printf("DOing something")
 		if currentTime.Unix()-matchToBePaused.Started_at.Unix() >= 1200 { //? 1200 seconds or 20 mins
 			matchToBePaused.Is_ended = true
 			matchToBePaused.Time_elapsed = 20 * time.Minute
 			matchToBePaused.Was_interrupted = false
-
-			matchesCollection.FindOneAndUpdate(ctx, bson.M{"match_id": matchToBePaused.Match_id}, matchToBePaused, &opt)
+			matchesCollection.FindOneAndUpdate(ctx, bson.M{"match_id": matchToBePaused.Match_id}, matchToBePaused)
 			continue
 		}
 
 		matchToBePaused.Was_interrupted = true
 		matchToBePaused.Time_elapsed = time.Duration(currentTime.Unix()-matchToBePaused.Started_at.Unix()) * time.Second
-		matchesCollection.FindOneAndUpdate(ctx, bson.M{"match_id": matchToBePaused.Match_id}, matchToBePaused, &opt)
+		matchesCollection.FindOneAndReplace(ctx, bson.M{"match_id": matchToBePaused.Match_id}, matchToBePaused)
+		//? We need to add replace as we are adding more parameters here
 
 	}
 
